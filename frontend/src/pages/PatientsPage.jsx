@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
+import { FaSearch } from 'react-icons/fa';
+import logoBase64 from '../assets/LogoBase64';
+
 const exportFullHistory = async (patientId, patientName) => {
   try {
     const res = await axios.get(
@@ -15,41 +18,97 @@ const exportFullHistory = async (patientId, patientName) => {
     }
 
     const doc = new jsPDF();
-    doc.setFontSize(16);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Logo (opcional)
+    if (logoBase64) {
+      doc.addImage(logoBase64, 'PNG', pageWidth - 50, 5, 40, 15);
+    }
+
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.text(`Historial Clínico de ${patientName}`, 14, 20);
-    doc.setFontSize(12);
+    doc.setLineWidth(0.2);
+    doc.line(14, 24, pageWidth - 14, 24);
 
     let y = 30;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
 
     records.forEach((record, index) => {
-      const block = [
-        `Historia #${index + 1}`,
-        `Fecha: ${record.date}`,
-        `Diagnóstico: ${record.diagnosis}`,
-        `Tratamiento: ${record.treatment}`,
-        `Antecedentes: ${record.antecedentes}`,
-        `Motivo de consulta: ${record.motivo_consulta}`,
-        `Historia enfermedad actual: ${record.historia_enfermedad_actual}`,
-        `Examen laboratorio: ${record.examen_laboratorio}`,
+      const fields = [
+        ['Motivo de consulta', record.motivo_consulta],
+        ['Antecedentes', record.antecedentes],
+        ['Examen clínico', record.examen_clinico],
+        ['Diagnóstico', record.diagnosis],
+        ['Tratamiento', record.treatment],
+        ['Examen laboratorio', record.examen_laboratorio],
       ];
 
-      block.forEach((line) => {
-        doc.text(line, 14, y);
-        y += 8;
-        if (y > 270) {
+      // 🔎 Calcular la altura estimada de esta historia
+      let estimatedHeight = 18; // encabezado
+      fields.forEach(([_, value]) => {
+        const lines = doc.splitTextToSize(value || '—', pageWidth - 32);
+        estimatedHeight += lines.length * 6 + 10;
+      });
+
+      if (y + estimatedHeight > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // 🧾 Encabezado de historia
+      doc.setFont('helvetica', 'bold');
+      doc.setFillColor(230, 230, 230); // gris claro
+      doc.rect(14, y, pageWidth - 28, 8, 'F');
+      doc.text(
+        `Historia #${index + 1} — Fecha: ${formatDate(record.date)}`,
+        16,
+        y + 6
+      );
+      y += 18;
+
+      // 📄 Contenido de campos
+      fields.forEach(([label, value]) => {
+        if (y > 260) {
           doc.addPage();
           y = 20;
         }
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${label}:`, 16, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        const textLines = doc.splitTextToSize(value || '—', pageWidth - 32);
+        doc.text(textLines, 20, y);
+        y += textLines.length * 6 + 4;
       });
 
-      y += 6; // espacio entre historias
+      y += 4;
     });
+
+    // Pie de página
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(
+      `Exportado el ${new Date().toLocaleDateString()} – Consultorio Médico Martín Kong`,
+      14,
+      pageHeight - 10
+    );
 
     doc.save(`Historial_${patientName}.pdf`);
   } catch (err) {
     console.error('Error al exportar historial:', err);
     alert('No se pudo exportar el historial clínico.');
   }
+};
+
+const formatDate = (isoDate) => {
+  if (!isoDate) return '';
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
 };
 
 export default function PatientsPage() {
@@ -147,12 +206,6 @@ export default function PatientsPage() {
     }
   }, [patients]);
 
-  const formatDate = (isoDate) => {
-    if (!isoDate) return '';
-    const [year, month, day] = isoDate.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
   const filteredPatients = patients
     .filter(
       (p) =>
@@ -173,18 +226,8 @@ export default function PatientsPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Gestión de Pacientes</h2>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por nombre o DNI"
-          className="border p-2 rounded w-full md:w-1/2"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
       <div className="bg-white p-4 rounded shadow mb-8">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold mb-4 border-b pb-2">
           {editId ? 'Editar Paciente' : 'Agregar Nuevo Paciente'}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -307,6 +350,31 @@ export default function PatientsPage() {
 
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4">Pacientes Registrados</h3>
+        <div className="relative mb-4 md:w-1/2">
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar por DNI o nombre del paciente"
+            className="pl-10 pr-8 py-2 border rounded w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              title="Limpiar"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {searchTerm && filteredPatients.length === 0 && (
+          <p className="text-red-500 text-sm mt-2">
+            No se encontraron pacientes que coincidan con tu búsqueda.
+          </p>
+        )}
         <table className="w-full border shadow rounded overflow-hidden text-sm">
           <thead className="bg-gray-100 text-left">
             <tr>

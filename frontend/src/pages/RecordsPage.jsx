@@ -4,34 +4,89 @@ import Select from 'react-select';
 import { useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { FaSearch } from 'react-icons/fa';
+import logoBase64 from '../assets/LogoBase64';
 
 const exportSingleRecordToPDF = (record) => {
   const doc = new jsPDF();
-  doc.setFontSize(16);
-  doc.text('Historia Clínica', 14, 20);
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-  const lines = [
-    `Paciente: ${record.patient_name}`,
-    `Fecha: ${record.date}`,
-    `Diagnóstico: ${record.diagnosis}`,
-    `Tratamiento: ${record.treatment}`,
-    `Antecedentes: ${record.antecedentes}`,
-    `Motivo de consulta: ${record.motivo_consulta}`,
-    `Examen clínico: ${record.examen_clinico}`,
-    `Examen laboratorio: ${record.examen_laboratorio}`,
+  // Logo centrado
+  doc.addImage(logoBase64, 'PNG', (pageWidth - 60) / 2, 10, 60, 30);
+
+  // Título
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('HISTORIA CLÍNICA', pageWidth / 2, 50, { align: 'center' });
+
+  // Línea divisoria
+  doc.setDrawColor(0);
+  doc.line(14, 55, pageWidth - 14, 55);
+
+  let y = 65;
+
+  // Sección: Datos del paciente
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Datos del paciente', 14, y);
+  y += 8;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Paciente: ${record.patient_name}`, 14, y);
+  y += 7;
+  doc.text(`Fecha de consulta: ${record.date}`, 14, y);
+  y += 10;
+
+  // Sección: Información clínica
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Información clínica', 14, y);
+  y += 8;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+
+  const content = [
+    [`Motivo de consulta`, record.motivo_consulta],
+    [`Antecedentes`, record.antecedentes],
+    [`Examen clínico`, record.examen_clinico],
+    [`Diagnóstico`, record.diagnosis],
+    [`Tratamiento`, record.treatment],
+    [`Examen laboratorio`, record.examen_laboratorio],
   ];
 
-  let y = 30;
-  doc.setFontSize(12);
-  lines.forEach((line) => {
-    doc.text(line, 14, y);
-    y += 10;
+  content.forEach(([label, value]) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${label}:`, 14, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+
+    const splitText = doc.splitTextToSize(value || '—', pageWidth - 28);
+    doc.text(splitText, 18, y);
+    y += splitText.length * 6 + 4;
   });
+
+  // Pie de página
+  doc.setFontSize(10);
+  doc.setTextColor(150);
+  doc.text(
+    `Generado el ${new Date().toLocaleDateString()} – Consultorio Médico Martín Kong`,
+    14,
+    290
+  );
 
   doc.save(`Historia_${record.patient_name || 'paciente'}.pdf`);
 };
 
 export default function RecordsPage() {
+  
+
   const formRef = useRef(null);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -68,14 +123,25 @@ export default function RecordsPage() {
     return patient ? String(patient.id) : null;
   };
 
-  const filteredRecords = records.filter((r) => {
+  const filteredRecords = records
+  .filter((r) => {
     if (!searchDNI) return true;
     const patient = patients.find((p) => p.id === r.patient_id);
     return (
       patient?.dni.includes(searchDNI) ||
       patient?.name.toLowerCase().includes(searchDNI.toLowerCase())
     );
-  });
+  })
+  .sort((a, b) => new Date(b.date) - new Date(a.date)); // orden descendente
+
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const patientOptions = patients.map((p) => ({
     value: p.id,
@@ -255,7 +321,9 @@ export default function RecordsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Fecha de registro</label>
+              <label className="block text-sm font-medium mb-1">
+                Fecha de registro
+              </label>
               <input
                 type="date"
                 className={`border p-2 rounded w-full ${
@@ -397,6 +465,9 @@ export default function RecordsPage() {
         </div>
       </div>
 
+      <h3 className="text-lg font-semibold mb-3 border-t pt-6">
+        Historias Clínicas Registradas
+      </h3>
       <div className="relative mb-6 md:w-1/2">
         <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
@@ -416,16 +487,12 @@ export default function RecordsPage() {
           </button>
         )}
       </div>
-
-      <h3 className="text-lg font-semibold mb-3">
-        Historias Clínicas Registradas
-      </h3>
       <table className="w-full border shadow rounded text-sm mb-8">
         <thead className="bg-gray-100 text-left">
           <tr>
             <th className="p-2 border">Paciente</th>
             <th className="p-2 border">Fecha de registro</th>
-            <th className="p-2 border">Diagnóstico</th>
+            <th className="p-2 border">Motivo de la consulta</th>
             <th className="p-2 border">Acciones</th>
           </tr>
         </thead>
@@ -439,11 +506,11 @@ export default function RecordsPage() {
               </td>
             </tr>
           ) : (
-            filteredRecords.map((r) => (
+            paginatedRecords.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50 even:bg-gray-50">
                 <td className="p-2 border">{r.patient_name}</td>
                 <td className="p-2 border">{formatDate(r.date)}</td>
-                <td className="p-2 border">{r.diagnosis}</td>
+                <td className="p-2 border">{r.motivo_consulta}</td>
                 <td className="p-2 border space-x-1">
                   <button
                     className="bg-sky-600 text-white px-2 py-1 rounded hover:bg-sky-700"
@@ -482,6 +549,43 @@ export default function RecordsPage() {
           )}
         </tbody>
       </table>
+
+      {/* Paginación */}
+      <div className="flex justify-between items-center mb-10 text-sm">
+        <p>
+          Mostrando{' '}
+          {Math.min(
+            (currentPage - 1) * itemsPerPage + 1,
+            filteredRecords.length
+          )}
+          –{Math.min(currentPage * itemsPerPage, filteredRecords.length)} de{' '}
+          {filteredRecords.length} historia(s)
+        </p>
+        <div className="space-x-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            className={`px-3 py-1 rounded border ${
+              currentPage === 1
+                ? 'bg-gray-200 text-gray-400'
+                : 'hover:bg-gray-100'
+            }`}
+          >
+            Anterior
+          </button>
+          <button
+            disabled={currentPage * itemsPerPage >= filteredRecords.length}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            className={`px-3 py-1 rounded border ${
+              currentPage * itemsPerPage >= filteredRecords.length
+                ? 'bg-gray-200 text-gray-400'
+                : 'hover:bg-gray-100'
+            }`}
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
 
       {showDetailModal && selectedRecordDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20 z-50 transition-opacity duration-300 animate-fade-in">
