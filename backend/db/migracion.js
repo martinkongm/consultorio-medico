@@ -1,5 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./clinic.sqlite');
+const db = new sqlite3.Database('../clinic.sqlite');
 
 db.serialize(() => {
   const alter = (sql) => {
