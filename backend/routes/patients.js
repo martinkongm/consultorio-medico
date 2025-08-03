@@ -28,13 +28,17 @@ router.get('/:id', (req, res) => {
 
 // Crear un nuevo paciente
 router.post('/', (req, res) => {
-  const { name, dni, birthdate, gender, phone } = req.body;
-  if (!name || !dni) {
-    return res.status(400).json({ error: 'Nombre y DNI son obligatorios' });
+  const { name, dni, birthdate, gender, phone, edad, domicilio } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Nombre es obligatorio.' });
   }
 
-  const sql = 'INSERT INTO patients (name, dni, birthdate, gender, phone) VALUES (?, ?, ?, ?, ?)';
-  db.run(sql, [name, dni, birthdate, gender, phone], function (err) {
+  if(edad <= 0) {
+    return res.status(400).json({ error: 'La edad no puede ser menor o igual a cero.' });
+  }
+
+  const sql = 'INSERT INTO patients (name, dni, birthdate, gender, phone, edad, domicilio) VALUES (?, ?, ?, ?, ?)';
+  db.run(sql, [name, dni, birthdate, gender, phone, edad, domicilio], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error al crear paciente', details: err.message });
     }
@@ -44,15 +48,15 @@ router.post('/', (req, res) => {
 
 // Actualizar paciente
 router.put('/:id', (req, res) => {
-  const { name, dni, birthdate, gender, phone } = req.body;
+  const { name, dni, birthdate, gender, phone, edad, domicilio } = req.body;
   const id = req.params.id;
 
   const sql = `
     UPDATE patients
-    SET name = ?, dni = ?, birthdate = ?, gender = ?, phone = ?
+    SET name = ?, dni = ?, birthdate = ?, gender = ?, phone = ?, edad = ?, domicilio = ?
     WHERE id = ?
   `;
-  db.run(sql, [name, dni, birthdate, gender, phone, id], function (err) {
+  db.run(sql, [name, dni, birthdate, gender, phone, edad, domicilio, id], function (err) {
     if (err) {
       return res.status(500).json({ error: 'Error al actualizar paciente', details: err.message });
     }

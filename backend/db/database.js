@@ -13,19 +13,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Crear tablas si no existen
 db.serialize(() => {
-  // Tabla de pacientes
+  // Tabla de pacientes (ya con edad y domicilio)
   db.run(`
     CREATE TABLE IF NOT EXISTS patients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      dni TEXT UNIQUE NOT NULL,
+      dni TEXT NOT NULL,      -- ya sin UNIQUE
       birthdate TEXT,
       gender TEXT,
-      phone TEXT
+      phone TEXT,
+      edad INTEGER,
+      domicilio TEXT
     )
   `);
 
-  // Tabla de historias clínicas
+  // Tabla de historias clínicas (con campos extra)
   db.run(`
     CREATE TABLE IF NOT EXISTS medical_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,8 +37,12 @@ db.serialize(() => {
       treatment TEXT,
       antecedentes TEXT,
       motivo_consulta TEXT,
-      examen_clinico TEXT, -- nuevo campo reemplazando historia_enfermedad_actual
+      examen_clinico TEXT, -- reemplaza historia_enfermedad_actual
       examen_laboratorio TEXT,
+      temperatura REAL,
+      frecuencia_respiratoria INTEGER,
+      pulso INTEGER,
+      spo2 INTEGER,
       FOREIGN KEY(patient_id) REFERENCES patients(id)
     )
   `);

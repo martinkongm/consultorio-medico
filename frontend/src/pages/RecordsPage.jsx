@@ -2,95 +2,15 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 import { useLocation } from 'react-router-dom';
-import jsPDF from 'jspdf';
 import { FaSearch } from 'react-icons/fa';
-import logoBase64 from '../assets/LogoBase64';
-
-const exportSingleRecordToPDF = (record) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-
-  // Logo centrado
-  doc.addImage(logoBase64, 'PNG', (pageWidth - 60) / 2, 10, 60, 30);
-
-  // Título
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('HISTORIA CLÍNICA', pageWidth / 2, 50, { align: 'center' });
-
-  // Línea divisoria
-  doc.setDrawColor(0);
-  doc.line(14, 55, pageWidth - 14, 55);
-
-  let y = 65;
-
-  // Sección: Datos del paciente
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Datos del paciente', 14, y);
-  y += 8;
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Paciente: ${record.patient_name}`, 14, y);
-  y += 7;
-  doc.text(`Fecha de consulta: ${record.date}`, 14, y);
-  y += 10;
-
-  // Sección: Información clínica
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Información clínica', 14, y);
-  y += 8;
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-
-  const content = [
-    [`Motivo de consulta`, record.motivo_consulta],
-    [`Antecedentes`, record.antecedentes],
-    [`Examen clínico`, record.examen_clinico],
-    [`Diagnóstico`, record.diagnosis],
-    [`Tratamiento`, record.treatment],
-    [`Examen laboratorio`, record.examen_laboratorio],
-  ];
-
-  content.forEach(([label, value]) => {
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${label}:`, 14, y);
-    y += 6;
-
-    doc.setFont('helvetica', 'normal');
-
-    const splitText = doc.splitTextToSize(value || '—', pageWidth - 28);
-    doc.text(splitText, 18, y);
-    y += splitText.length * 6 + 4;
-  });
-
-  // Pie de página
-  doc.setFontSize(10);
-  doc.setTextColor(150);
-  doc.text(
-    `Generado el ${new Date().toLocaleDateString()} – Consultorio Médico Martín Kong`,
-    14,
-    290
-  );
-
-  doc.save(`Historia_${record.patient_name || 'paciente'}.pdf`);
-};
+import { exportSingleRecordToPDF } from '../helper/exportSingleRecordToPDF';
 
 export default function RecordsPage() {
-  
-
   const formRef = useRef(null);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const dniFromUrl = params.get('dni');
+  const nameFromUrl = params.get('nombre');
 
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState(null);
@@ -107,6 +27,10 @@ export default function RecordsPage() {
     motivo_consulta: '',
     examen_clinico: '',
     examen_laboratorio: '',
+    temperatura: '',
+    frecuencia_respiratoria: '',
+    pulso: '',
+    spo2: '',
   });
 
   const [editId, setEditId] = useState(null);
@@ -124,16 +48,15 @@ export default function RecordsPage() {
   };
 
   const filteredRecords = records
-  .filter((r) => {
-    if (!searchDNI) return true;
-    const patient = patients.find((p) => p.id === r.patient_id);
-    return (
-      patient?.dni.includes(searchDNI) ||
-      patient?.name.toLowerCase().includes(searchDNI.toLowerCase())
-    );
-  })
-  .sort((a, b) => new Date(b.date) - new Date(a.date)); // orden descendente
-
+    .filter((r) => {
+      if (!searchDNI) return true;
+      const patient = patients.find((p) => p.id === r.patient_id);
+      return (
+        patient?.dni.includes(searchDNI) ||
+        patient?.name.toLowerCase().includes(searchDNI.toLowerCase())
+      );
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // orden descendente
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -189,6 +112,10 @@ export default function RecordsPage() {
         motivo_consulta: '',
         examen_clinico: '',
         examen_laboratorio: '',
+        temperatura: '',
+        frecuencia_respiratoria: '',
+        pulso: '',
+        spo2: '',
       });
       setEditId(null);
       setErrors({});
@@ -214,6 +141,10 @@ export default function RecordsPage() {
       motivo_consulta: record.motivo_consulta || '',
       examen_clinico: record.examen_clinico || '',
       examen_laboratorio: record.examen_laboratorio || '',
+      temperatura: record.temperatura || '',
+      frecuencia_respiratoria: record.frecuencia_respiratoria || '',
+      pulso: record.pulso || '',
+      spo2: record.spo2 || '',
     });
     setEditId(record.id);
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -256,15 +187,22 @@ export default function RecordsPage() {
   }, []);
 
   useEffect(() => {
-    if (dniFromUrl && patients.length > 0) {
-      const patient = patients.find((p) => p.dni.trim() === dniFromUrl.trim());
+    if ((dniFromUrl || nameFromUrl) && patients.length > 0) {
+      const patient = patients.find((p) => {
+        const matchByDNI = dniFromUrl && p.dni.trim() === dniFromUrl.trim();
+        const matchByName =
+          nameFromUrl &&
+          p.name.trim().toLowerCase() === nameFromUrl.trim().toLowerCase();
+        return matchByDNI || matchByName;
+      });
+
       if (patient) {
         setForm((prev) => ({ ...prev, patient_id: patient.id }));
         localStorage.setItem('lastSelectedPatientId', patient.id);
-        setSearchDNI(dniFromUrl);
+        setSearchDNI(patient.dni); // Usamos el DNI real encontrado
       }
     }
-  }, [dniFromUrl, patients]);
+  }, [dniFromUrl, nameFromUrl, patients]);
 
   const selectedPatient = getPatientById(form.patient_id);
 
@@ -272,6 +210,14 @@ export default function RecordsPage() {
     if (!isoDate) return '';
     const [year, month, day] = isoDate.split('-');
     return `${day}/${month}/${year}`;
+  };
+
+  const displayInfo = (data, unit = '') => {
+    if (data) {
+      return unit !== '' ? `${data} ${unit}` : data;
+    } else {
+      return 'No registrado';
+    }
   };
 
   return (
@@ -322,7 +268,7 @@ export default function RecordsPage() {
 
             <div>
               <label className="block text-sm font-medium mb-1">
-                Fecha de registro
+                Fecha de consulta
               </label>
               <input
                 type="date"
@@ -426,6 +372,56 @@ export default function RecordsPage() {
                 }
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Temperatura (°C)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                className="border p-2 rounded w-full"
+                value={form.temperatura}
+                onChange={(e) =>
+                  setForm({ ...form, temperatura: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Frecuencia respiratoria (FR)
+              </label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.frecuencia_respiratoria}
+                onChange={(e) =>
+                  setForm({ ...form, frecuencia_respiratoria: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Pulso</label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.pulso}
+                onChange={(e) => setForm({ ...form, pulso: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Saturación O₂ (SPO₂)
+              </label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.spo2}
+                onChange={(e) => setForm({ ...form, spo2: e.target.value })}
+              />
+            </div>
           </div>
         </fieldset>
 
@@ -449,6 +445,10 @@ export default function RecordsPage() {
                   motivo_consulta: '',
                   examen_clinico: '',
                   examen_laboratorio: '',
+                  temperatura: '',
+                  frecuencia_respiratoria: '',
+                  pulso: '',
+                  spo2: '',
                 });
                 setEditId(null);
                 setErrors({});
@@ -611,7 +611,7 @@ export default function RecordsPage() {
                   <strong>Paciente:</strong> {selectedRecordDetail.patient_name}
                 </p>
                 <p>
-                  <strong>Fecha:</strong>{' '}
+                  <strong>Fecha de consulta:</strong>{' '}
                   {formatDate(selectedRecordDetail.date)}
                 </p>
               </div>
@@ -628,26 +628,45 @@ export default function RecordsPage() {
               <div className="p-3 bg-white rounded border shadow-sm">
                 <p>
                   <strong>Antecedentes:</strong>{' '}
-                  {selectedRecordDetail.antecedentes}
+                  {displayInfo(selectedRecordDetail.antecedentes)}
                 </p>
                 <p>
                   <strong>Motivo de consulta:</strong>{' '}
-                  {selectedRecordDetail.motivo_consulta}
+                  {displayInfo(selectedRecordDetail.motivo_consulta)}
                 </p>
                 <p>
                   <strong>Historia enfermedad actual:</strong>{' '}
-                  {selectedRecordDetail.historia_enfermedad_actual}
+                  {displayInfo(selectedRecordDetail.historia_enfermedad_actual)}
                 </p>
                 <p>
                   <strong>Examen laboratorio:</strong>{' '}
-                  {selectedRecordDetail.examen_laboratorio}
+                  {displayInfo(selectedRecordDetail.examen_laboratorio)}
+                </p>
+                <p>
+                  <strong>Temperatura:</strong>{' '}
+                  {displayInfo(selectedRecordDetail.temperatura, '°C')}
+                </p>
+                <p>
+                  <strong>Frecuencia respiratoria:</strong>{' '}
+                  {displayInfo(
+                    selectedRecordDetail.frecuencia_respiratoria,
+                    'rpm'
+                  )}
+                </p>
+                <p>
+                  <strong>Pulso:</strong>{' '}
+                  {displayInfo(selectedRecordDetail.pulso, 'lpm')}
+                </p>
+                <p>
+                  <strong>Saturación O₂:</strong>{' '}
+                  {displayInfo(selectedRecordDetail.spo2, '%')}
                 </p>
               </div>
             </div>
 
             <div className="mt-6 flex justify-end">
               <button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2"
                 onClick={() => exportSingleRecordToPDF(selectedRecordDetail)}
               >
                 Exportar PDF

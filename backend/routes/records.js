@@ -32,7 +32,11 @@ router.get('/', (req, res) => {
       medical_records.antecedentes,
       medical_records.motivo_consulta,
       medical_records.examen_clinico,
-      medical_records.examen_laboratorio
+      medical_records.examen_laboratorio,
+      medical_records.temperatura,
+      medical_records.frecuencia_respiratoria,
+      medical_records.pulso,
+      medical_records.spo2
     FROM medical_records
     JOIN patients ON medical_records.patient_id = patients.id
     ORDER BY medical_records.date DESC
@@ -79,6 +83,10 @@ router.post('/', (req, res) => {
     motivo_consulta,
     examen_clinico,
     examen_laboratorio,
+    temperatura,
+    frecuencia_respiratoria,
+    pulso,
+    spo2
   } = req.body;
 
   if (!patient_id || !date || !diagnosis) {
@@ -88,9 +96,10 @@ router.post('/', (req, res) => {
   const sql = `
     INSERT INTO medical_records (
       patient_id, date, diagnosis, treatment,
-      antecedentes, motivo_consulta, examen_clinico, examen_laboratorio
+      antecedentes, motivo_consulta, examen_clinico, examen_laboratorio,
+      temperatura, frecuencia_respiratoria, pulso, spo2
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   db.run(sql, [
     patient_id,
@@ -100,7 +109,11 @@ router.post('/', (req, res) => {
     antecedentes,
     motivo_consulta,
     examen_clinico,
-    examen_laboratorio
+    examen_laboratorio,
+    temperatura,
+    frecuencia_respiratoria,
+    pulso,
+    spo2
   ], function (err) {
     if (err) return res.status(500).json({ error: 'Error al crear historia clínica', details: err.message });
     res.status(201).json({ id: this.lastID });
@@ -117,7 +130,11 @@ router.put('/:id', (req, res) => {
     antecedentes,
     motivo_consulta,
     examen_clinico,
-    examen_laboratorio
+    examen_laboratorio,
+    temperatura,
+    frecuencia_respiratoria,
+    pulso,
+    spo2
   } = req.body;
   const id = req.params.id;
 
@@ -128,7 +145,8 @@ router.put('/:id', (req, res) => {
   const sql = `
     UPDATE medical_records
     SET patient_id = ?, date = ?, diagnosis = ?, treatment = ?,
-        antecedentes = ?, motivo_consulta = ?, examen_clinico = ?, examen_laboratorio = ?
+        antecedentes = ?, motivo_consulta = ?, examen_clinico = ?, examen_laboratorio = ?,
+        temperatura = ?, frecuencia_respiratoria = ?, pulso = ?, spo2 = ?
     WHERE id = ?
   `;
 
@@ -141,6 +159,10 @@ router.put('/:id', (req, res) => {
     motivo_consulta,
     examen_clinico,
     examen_laboratorio,
+    temperatura,
+    frecuencia_respiratoria,
+    pulso,
+    spo2,
     id
   ], function (err) {
     if (err) return res.status(500).json({ error: 'Error al actualizar la historia clínica', details: err.message });
@@ -148,7 +170,6 @@ router.put('/:id', (req, res) => {
     res.json({ message: 'Historia clínica actualizada correctamente' });
   });
 });
-
 
 // Eliminar una historia clínica
 router.delete('/:id', (req, res) => {
