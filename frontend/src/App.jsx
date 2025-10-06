@@ -12,6 +12,8 @@ import LoginPage from './pages/LoginPage';
 import RequireAuth from './components/RequireAuth';
 import { Menu, X, LogOut } from 'lucide-react';
 import Logo from './assets/logo.png';
+import PatientsPageBackup from './pages/PatientsPageBackup';
+import RecordsPageBackup from './pages/RecordsPageBackup';
 
 export default function App() {
   const [logoutMessage, setLogoutMessage] = useState('');
@@ -137,7 +139,7 @@ export default function App() {
             path="/"
             element={
               <RequireAuth>
-                <PatientsPage />
+                <PatientsPageBackup />
               </RequireAuth>
             }
           />
@@ -145,7 +147,7 @@ export default function App() {
             path="/historias"
             element={
               <RequireAuth>
-                <RecordsPage />
+                <RecordsPageBackup />
               </RequireAuth>
             }
           />

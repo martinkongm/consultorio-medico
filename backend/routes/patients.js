@@ -6,7 +6,8 @@ const db = require('../db/database');
 router.get('/', (req, res) => {
   db.all(
     `
-    SELECT 
+    SELECT
+    id,
   name,
   dni,
   birthdate,
