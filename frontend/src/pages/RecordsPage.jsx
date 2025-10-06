@@ -219,7 +219,11 @@ export default function RecordsPage() {
       return 'No registrado';
     }
   };
-
+  //TODO Agregar funciones vitales arriba de información clínica:
+  //  1. Temperatura 2. Presión arterial  3. frecuencia cardíaca /Abajo 4. Frecuencia
+  //TODO Agregar campo de indicaciones que se relaciones con tratamiento.
+  //TODO Cambiar a examen de laboratorio por dos: examen de laboratorio solicitados y realizados
+  //TODO Imprimpir tratamiento con indicaciones con un comando a la impresora según un formato de recetario
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Historias Clínicas</h2>
@@ -281,6 +285,64 @@ export default function RecordsPage() {
               {errors.date && (
                 <p className="text-red-500 text-sm mt-1">{errors.date}</p>
               )}
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="border border-gray-200 rounded p-4 mb-6">
+          <legend className="text-sm font-semibold text-gray-600 px-2">
+            Funciones Vitales
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Temperatura (°C)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                className="border p-2 rounded w-full"
+                value={form.temperatura}
+                onChange={(e) =>
+                  setForm({ ...form, temperatura: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Frecuencia respiratoria (FR)
+              </label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.frecuencia_respiratoria}
+                onChange={(e) =>
+                  setForm({ ...form, frecuencia_respiratoria: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Pulso</label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.pulso}
+                onChange={(e) => setForm({ ...form, pulso: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Saturación O₂ (SPO₂)
+              </label>
+              <input
+                type="number"
+                className="border p-2 rounded w-full"
+                value={form.spo2}
+                onChange={(e) => setForm({ ...form, spo2: e.target.value })}
+              />
             </div>
           </div>
         </fieldset>
@@ -370,56 +432,6 @@ export default function RecordsPage() {
                 onChange={(e) =>
                   setForm({ ...form, examen_laboratorio: e.target.value })
                 }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Temperatura (°C)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                className="border p-2 rounded w-full"
-                value={form.temperatura}
-                onChange={(e) =>
-                  setForm({ ...form, temperatura: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Frecuencia respiratoria (FR)
-              </label>
-              <input
-                type="number"
-                className="border p-2 rounded w-full"
-                value={form.frecuencia_respiratoria}
-                onChange={(e) =>
-                  setForm({ ...form, frecuencia_respiratoria: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Pulso</label>
-              <input
-                type="number"
-                className="border p-2 rounded w-full"
-                value={form.pulso}
-                onChange={(e) => setForm({ ...form, pulso: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Saturación O₂ (SPO₂)
-              </label>
-              <input
-                type="number"
-                className="border p-2 rounded w-full"
-                value={form.spo2}
-                onChange={(e) => setForm({ ...form, spo2: e.target.value })}
               />
             </div>
           </div>

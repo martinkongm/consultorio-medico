@@ -235,24 +235,6 @@ export default function PatientsPage() {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Edad
-            </label>
-            <input
-              className="border p-2 rounded w-full"
-              type="number"
-              min="0"
-              value={form.edad}
-              onChange={(e) => {
-                const rawValue = e.target.value;
-                if (rawValue === '' || Number(rawValue) >= 0) {
-                  setForm({ ...form, edad: rawValue });
-                }
-              }}
-            />
-          </div>
-
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Domicilio

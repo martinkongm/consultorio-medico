@@ -10,7 +10,6 @@ db.serialize(() => {
     });
   };
 
-  alter('ALTER TABLE patients ADD COLUMN edad INTEGER;');
   alter('ALTER TABLE patients ADD COLUMN domicilio TEXT;');
   alter('ALTER TABLE medical_records ADD COLUMN temperatura REAL;');
   alter('ALTER TABLE medical_records ADD COLUMN frecuencia_respiratoria INTEGER;');
