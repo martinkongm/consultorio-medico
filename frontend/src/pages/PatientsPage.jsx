@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch } from 'react-icons/fa';
 import { exportFullHistory } from '../helper/exportFullHistory';
 import PatientDetailModal from '../components/PatientDetailModal';
 import { usePatients } from '../hooks/usePatients';
@@ -83,10 +82,11 @@ export default function PatientsPage() {
 
   if (loading) return <div className="p-6">Cargando...</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  throw new Error('SI VES ESTO, ES EL ARCHIVO CORRECTO');
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Pacientes</h2>
+      <h2 className="text-2xl font-bold mb-4">Gestión de Pacientes n</h2>
 
       <PatientForm
         form={form}

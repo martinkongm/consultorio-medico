@@ -21,6 +21,8 @@ export default function RecordsPageBackup() {
   const [form, setForm] = useState({
     patient_id: '',
     date: '',
+    age: '', // Solo lectura
+    weight: '',
     diagnosis: '',
     treatment: '',
     antecedentes: '',
@@ -93,6 +95,11 @@ export default function RecordsPageBackup() {
     if (!form.patient_id) newErrors.patient_id = 'Selecciona un paciente.';
     if (!form.date) newErrors.date = 'La fecha es obligatoria.';
     if (!form.diagnosis) newErrors.diagnosis = 'El diagnóstico es obligatorio.';
+    if (!form.weight) {
+      newErrors.weight = 'El peso es obligatorio.';
+    } else if (isNaN(form.weight) || Number(form.weight) <= 0) {
+      newErrors.weight = 'El peso debe ser un número mayor a 0.';
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -106,6 +113,8 @@ export default function RecordsPageBackup() {
       setForm({
         patient_id: '',
         date: '',
+        age: '',
+        weight: '',
         diagnosis: '',
         treatment: '',
         antecedentes: '',
@@ -135,6 +144,7 @@ export default function RecordsPageBackup() {
     setForm({
       patient_id: Number(record.patient_id),
       date: record.date,
+      weight: record.weight,
       diagnosis: record.diagnosis || '',
       treatment: record.treatment || '',
       antecedentes: record.antecedentes || '',
@@ -219,6 +229,17 @@ export default function RecordsPageBackup() {
       return 'No registrado';
     }
   };
+  useEffect(() => {
+    if (selectedPatient) {
+      setForm((prev) => ({
+        ...prev,
+        age: selectedPatient.edad ?? '',
+      }));
+    }
+  }, [selectedPatient]);
+
+
+
   //TODO Agregar funciones vitales arriba de información clínica:
   //  1. Temperatura 2. Presión arterial  3. frecuencia cardíaca /Abajo 4. Frecuencia
   //TODO Agregar campo de indicaciones que se relaciones con tratamiento.
@@ -276,14 +297,49 @@ export default function RecordsPageBackup() {
               </label>
               <input
                 type="date"
-                className={`border p-2 rounded w-full ${
-                  errors.date ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`border p-2 rounded w-full ${errors.date ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
               {errors.date && (
                 <p className="text-red-500 text-sm mt-1">{errors.date}</p>
+              )}
+            </div>
+
+            {/* Edad (solo lectura) */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Edad</label>
+              <input
+                type="text"
+                value={form.age || ''}
+                disabled
+                className="border border-gray-300 p-2 rounded w-full bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+
+            </div>
+
+            {/* Peso */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Peso (kg)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                className={`border p-2 rounded w-full ${errors.weight ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                value={form.weight || ''}
+                onChange={(e) =>
+                  setForm({ ...form, weight: e.target.value })
+                }
+                placeholder="Ej. 70.5"
+              />
+              {errors.weight && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.weight}
+                </p>
               )}
             </div>
           </div>
@@ -396,9 +452,8 @@ export default function RecordsPageBackup() {
                 Diagnóstico
               </label>
               <textarea
-                className={`border p-2 rounded w-full resize-y min-h-[80px] ${
-                  errors.diagnosis ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`border p-2 rounded w-full resize-y min-h-[80px] ${errors.diagnosis ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 value={form.diagnosis}
                 onChange={(e) =>
                   setForm({ ...form, diagnosis: e.target.value })
@@ -577,22 +632,20 @@ export default function RecordsPageBackup() {
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            className={`px-3 py-1 rounded border ${
-              currentPage === 1
-                ? 'bg-gray-200 text-gray-400'
-                : 'hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1 rounded border ${currentPage === 1
+              ? 'bg-gray-200 text-gray-400'
+              : 'hover:bg-gray-100'
+              }`}
           >
             Anterior
           </button>
           <button
             disabled={currentPage * itemsPerPage >= filteredRecords.length}
             onClick={() => setCurrentPage((prev) => prev + 1)}
-            className={`px-3 py-1 rounded border ${
-              currentPage * itemsPerPage >= filteredRecords.length
-                ? 'bg-gray-200 text-gray-400'
-                : 'hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1 rounded border ${currentPage * itemsPerPage >= filteredRecords.length
+              ? 'bg-gray-200 text-gray-400'
+              : 'hover:bg-gray-100'
+              }`}
           >
             Siguiente
           </button>
@@ -621,6 +674,9 @@ export default function RecordsPageBackup() {
               <div className="p-3 bg-gray-50 rounded border">
                 <p>
                   <strong>Paciente:</strong> {selectedRecordDetail.patient_name}
+                </p>
+                <p>
+                  <strong>Peso:</strong> {selectedRecordDetail.weight || 'No registrado'}
                 </p>
                 <p>
                   <strong>Fecha de consulta:</strong>{' '}

@@ -27,6 +27,7 @@ router.get('/', (req, res) => {
       medical_records.patient_id,
       patients.name as patient_name,
       medical_records.date,
+      medical_records.weight,
       medical_records.diagnosis,
       medical_records.treatment,
       medical_records.antecedentes,
@@ -77,6 +78,7 @@ router.post('/', (req, res) => {
   const {
     patient_id,
     date,
+    weight,
     diagnosis,
     treatment,
     antecedentes,
@@ -95,15 +97,17 @@ router.post('/', (req, res) => {
 
   const sql = `
     INSERT INTO medical_records (
-      patient_id, date, diagnosis, treatment,
+      patient_id, date, weight, diagnosis, treatment,
       antecedentes, motivo_consulta, examen_clinico, examen_laboratorio,
       temperatura, frecuencia_respiratoria, pulso, spo2
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
+
   db.run(sql, [
     patient_id,
     date,
+    weight,
     diagnosis,
     treatment,
     antecedentes,
@@ -115,16 +119,23 @@ router.post('/', (req, res) => {
     pulso,
     spo2
   ], function (err) {
-    if (err) return res.status(500).json({ error: 'Error al crear historia clínica', details: err.message });
+    if (err) {
+      return res.status(500).json({
+        error: 'Error al crear historia clínica',
+        details: err.message
+      });
+    }
     res.status(201).json({ id: this.lastID });
   });
 });
+
 
 // Actualizar una historia clínica
 router.put('/:id', (req, res) => {
   const {
     patient_id,
     date,
+    weight,
     diagnosis,
     treatment,
     antecedentes,
@@ -136,6 +147,7 @@ router.put('/:id', (req, res) => {
     pulso,
     spo2
   } = req.body;
+
   const id = req.params.id;
 
   if (!patient_id || !date || !diagnosis) {
@@ -144,7 +156,7 @@ router.put('/:id', (req, res) => {
 
   const sql = `
     UPDATE medical_records
-    SET patient_id = ?, date = ?, diagnosis = ?, treatment = ?,
+    SET patient_id = ?, date = ?, weight = ?, diagnosis = ?, treatment = ?,
         antecedentes = ?, motivo_consulta = ?, examen_clinico = ?, examen_laboratorio = ?,
         temperatura = ?, frecuencia_respiratoria = ?, pulso = ?, spo2 = ?
     WHERE id = ?
@@ -153,6 +165,7 @@ router.put('/:id', (req, res) => {
   db.run(sql, [
     patient_id,
     date,
+    weight,
     diagnosis,
     treatment,
     antecedentes,
@@ -165,8 +178,15 @@ router.put('/:id', (req, res) => {
     spo2,
     id
   ], function (err) {
-    if (err) return res.status(500).json({ error: 'Error al actualizar la historia clínica', details: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: 'Historia clínica no encontrada' });
+    if (err) {
+      return res.status(500).json({
+        error: 'Error al actualizar la historia clínica',
+        details: err.message
+      });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Historia clínica no encontrada' });
+    }
     res.json({ message: 'Historia clínica actualizada correctamente' });
   });
 });
