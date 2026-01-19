@@ -95,10 +95,10 @@ export default function RecordsPageBackup() {
     if (!form.patient_id) newErrors.patient_id = 'Selecciona un paciente.';
     if (!form.date) newErrors.date = 'La fecha es obligatoria.';
     if (!form.diagnosis) newErrors.diagnosis = 'El diagnóstico es obligatorio.';
-    if (!form.weight) {
-      newErrors.weight = 'El peso es obligatorio.';
-    } else if (isNaN(form.weight) || Number(form.weight) <= 0) {
-      newErrors.weight = 'El peso debe ser un número mayor a 0.';
+    if (form.weight) {
+      if (isNaN(form.weight) || Number(form.weight) <= 0) {
+        newErrors.weight = 'El peso debe ser un número mayor a 0.';
+      }
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -230,21 +230,38 @@ export default function RecordsPageBackup() {
     }
   };
   useEffect(() => {
-    if (selectedPatient) {
+    if (selectedPatient?.birthdate) {
       setForm((prev) => ({
         ...prev,
-        age: selectedPatient.edad ?? '',
+        age: calcularEdadExacta(selectedPatient.birthdate),
       }));
     }
   }, [selectedPatient]);
 
+  function calcularEdadExacta(fechaNacimiento) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
+    const nacimiento = new Date(fechaNacimiento + 'T00:00:00');
 
-  //TODO Agregar funciones vitales arriba de información clínica:
-  //  1. Temperatura 2. Presión arterial  3. frecuencia cardíaca /Abajo 4. Frecuencia
-  //TODO Agregar campo de indicaciones que se relaciones con tratamiento.
-  //TODO Cambiar a examen de laboratorio por dos: examen de laboratorio solicitados y realizados
-  //TODO Imprimpir tratamiento con indicaciones con un comando a la impresora según un formato de recetario
+    let years = hoy.getFullYear() - nacimiento.getFullYear();
+    let months = hoy.getMonth() - nacimiento.getMonth();
+    let days = hoy.getDate() - nacimiento.getDate();
+
+    if (days < 0) {
+      months--;
+      const lastMonth = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+      days += lastMonth.getDate();
+    }
+
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    return `${years} años, ${months} meses, ${days} días`;
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Historias Clínicas</h2>
