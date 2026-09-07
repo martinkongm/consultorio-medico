@@ -1,5 +1,15 @@
 // components/FileUploadSection.jsx
-export function FileUploadSection({ recordId, patientName, selectedFile, uploadedFiles, onFileSelect, onUpload, onClose }) {
+import { getFileUrl } from '../services/config';
+
+export function FileUploadSection({
+  recordId,
+  patientName,
+  selectedFile,
+  uploadedFiles,
+  onFileSelect,
+  onUpload,
+  onClose,
+}) {
   return (
     <div className="bg-white p-4 border rounded shadow relative">
       <button
@@ -10,7 +20,8 @@ export function FileUploadSection({ recordId, patientName, selectedFile, uploade
         ✕
       </button>
       <h4 className="text-lg font-semibold mb-4">
-        Archivos de la historia #{recordId} {patientName ? `— ${patientName}` : ''}
+        Archivos de la historia #{recordId}{' '}
+        {patientName ? `— ${patientName}` : ''}
       </h4>
 
       <div className="flex items-center gap-2 mb-3">
@@ -26,12 +37,17 @@ export function FileUploadSection({ recordId, patientName, selectedFile, uploade
           Subir archivo
         </button>
       </div>
+      {selectedFile && (
+        <p className="text-sm text-gray-600 mb-2">
+          Archivo seleccionado: <strong>{selectedFile.name}</strong>
+        </p>
+      )}
       <ul className="list-disc list-inside">
         {uploadedFiles.map((f) => (
           <li key={f.id}>
             <a
               className="text-blue-600 hover:underline"
-              href={`http://localhost:3001/uploads/${f.filepath}`}
+              href={getFileUrl(f.filepath)}
               target="_blank"
               rel="noreferrer"
             >

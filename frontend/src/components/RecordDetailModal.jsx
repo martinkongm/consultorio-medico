@@ -1,17 +1,11 @@
 // components/RecordDetailModal.jsx
-export function RecordDetailModal({ record, onClose, onExport }) {
-  const displayInfo = (data, unit = '') => {
-    if (data) {
-      return unit !== '' ? `${data} ${unit}` : data;
-    }
-    return 'No registrado';
-  };
+import { displayInfo, formatDate } from '../utils/format';
+import { tiempoEnfermedadText } from '../utils/tiempo';
+import { examenClinicoRows, hasRegionContent } from '../utils/examenClinico';
 
-  const formatDate = (isoDate) => {
-    if (!isoDate) return '';
-    const [year, month, day] = isoDate.split('-');
-    return `${day}/${month}/${year}`;
-  };
+export function RecordDetailModal({ record, onClose, onExport }) {
+  const examenEntries = examenClinicoRows(record);
+  const groupedExamen = hasRegionContent(record);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20 z-50 transition-opacity duration-300 animate-fade-in">
@@ -30,24 +24,69 @@ export function RecordDetailModal({ record, onClose, onExport }) {
 
         <div className="grid grid-cols-1 gap-4 text-sm">
           <div className="p-3 bg-gray-50 rounded border">
-            <p><strong>Paciente:</strong> {record.patient_name}</p>
-            <p><strong>Fecha de consulta:</strong> {formatDate(record.date)}</p>
+            <p>
+              <strong>Paciente:</strong> {record.patient_name || 'No registrado'}
+            </p>
+            <p>
+              <strong>Peso:</strong> {displayInfo(record.weight, 'kg')}
+            </p>
+            <p>
+              <strong>Fecha de consulta:</strong>{' '}
+              {formatDate(record.date) || 'No registrada'}
+            </p>
           </div>
 
           <div className="p-3 bg-white rounded border shadow-sm">
-            <p><strong>Diagnóstico:</strong> {record.diagnosis}</p>
-            <p><strong>Tratamiento:</strong> {record.treatment}</p>
+            <p>
+              <strong>Diagnóstico:</strong> {displayInfo(record.diagnosis)}
+            </p>
+            <p>
+              <strong>Tratamiento:</strong> {displayInfo(record.treatment)}
+            </p>
           </div>
 
           <div className="p-3 bg-white rounded border shadow-sm">
-            <p><strong>Antecedentes:</strong> {displayInfo(record.antecedentes)}</p>
-            <p><strong>Motivo de consulta:</strong> {displayInfo(record.motivo_consulta)}</p>
-            <p><strong>Examen clínico:</strong> {displayInfo(record.examen_clinico)}</p>
-            <p><strong>Examen laboratorio:</strong> {displayInfo(record.examen_laboratorio)}</p>
-            <p><strong>Temperatura:</strong> {displayInfo(record.temperatura, '°C')}</p>
-            <p><strong>Frecuencia respiratoria:</strong> {displayInfo(record.frecuencia_respiratoria, 'rpm')}</p>
-            <p><strong>Pulso:</strong> {displayInfo(record.pulso, 'lpm')}</p>
-            <p><strong>Saturación O₂:</strong> {displayInfo(record.spo2, '%')}</p>
+            <p>
+              <strong>Antecedentes:</strong>{' '}
+              {displayInfo(record.antecedentes)}
+            </p>
+            <p>
+              <strong>Motivo de consulta:</strong>{' '}
+              {displayInfo(record.motivo_consulta)}
+            </p>
+            <p>
+              <strong>Tiempo de enfermedad:</strong>{' '}
+              {tiempoEnfermedadText(record)}
+            </p>
+            <div className="border-t border-gray-200 my-3"></div>
+            {groupedExamen && (
+              <p className="text-sm font-semibold text-gray-700">
+                Examen clínico por regiones
+              </p>
+            )}
+            {examenEntries.map(([label, value]) => (
+              <p key={label}>
+                <strong>{label}:</strong> {displayInfo(value)}
+              </p>
+            ))}
+            <p>
+              <strong>Examen laboratorio:</strong>{' '}
+              {displayInfo(record.examen_laboratorio)}
+            </p>
+            <p>
+              <strong>Temperatura:</strong>{' '}
+              {displayInfo(record.temperatura, '°C')}
+            </p>
+            <p>
+              <strong>Frecuencia respiratoria:</strong>{' '}
+              {displayInfo(record.frecuencia_respiratoria, 'rpm')}
+            </p>
+            <p>
+              <strong>Pulso:</strong> {displayInfo(record.pulso, 'lpm')}
+            </p>
+            <p>
+              <strong>Saturación O₂:</strong> {displayInfo(record.spo2, '%')}
+            </p>
           </div>
         </div>
 

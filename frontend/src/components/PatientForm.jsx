@@ -12,11 +12,7 @@ export function PatientForm({ form, errors, editId, firstInputRef, onSubmit, onC
         {editId ? 'Editar Paciente' : 'Agregar Nuevo Paciente'}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <FormField
-          label="Nombre completo"
-          error={errors.name}
-          inputRef={firstInputRef}
-        >
+        <FormField label="Nombre completo" error={errors.name}>
           <input
             ref={firstInputRef}
             className={`border p-2 rounded w-full ${

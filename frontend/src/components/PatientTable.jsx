@@ -1,5 +1,13 @@
 // components/PatientTable.jsx
 export function PatientTable({ patients, onEdit, onDelete, onViewDetails, onViewHistory, onExport }) {
+  if (patients.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8 border rounded mb-8">
+        No se encontraron pacientes para mostrar.
+      </div>
+    );
+  }
+
   return (
     <table className="w-full border shadow rounded overflow-hidden text-sm">
       <thead className="bg-gray-100 text-left">

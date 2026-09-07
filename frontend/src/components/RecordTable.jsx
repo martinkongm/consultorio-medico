@@ -1,11 +1,7 @@
 // components/RecordTable.jsx
-export function RecordTable({ records, patients, onViewFiles, onViewDetail, onEdit, onDelete }) {
-  const formatDate = (isoDate) => {
-    if (!isoDate) return '';
-    const [year, month, day] = isoDate.split('-');
-    return `${day}/${month}/${year}`;
-  };
+import { formatDate } from '../utils/format';
 
+export function RecordTable({ records, onViewFiles, onViewDetail, onEdit, onDelete }) {
   if (records.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8 border rounded mb-8">

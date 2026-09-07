@@ -1,23 +1,23 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const app = express();
-const PORT = 3001;
-const authRoutes = require('./routes/auth');
-const patientRoutes = require('./routes/patients');
-const recordRoutes = require('./routes/records');
+const config = require('./config');
+const { initDatabase } = require('./db/schema');
+const { runMigrations } = require('./db/migrations');
+const { createApp } = require('./app');
 
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+async function start() {
+  try {
+    // 1. Asegurar esquema y migraciones antes de atender peticiones.
+    await initDatabase();
+    await runMigrations();
+  } catch (err) {
+    console.error('Error al inicializar la base de datos:', err);
+    process.exit(1);
+  }
 
+  // 2. Levantar el servidor una vez que la BD está lista.
+  const app = createApp();
+  app.listen(config.port, () => {
+    console.log(`Servidor corriendo en http://localhost:${config.port}`);
+  });
+}
 
-// Rutas
-app.use('/api/patients', patientRoutes);
-app.use('/api/records', recordRoutes);
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
-
-app.use('/api', authRoutes);
+start();

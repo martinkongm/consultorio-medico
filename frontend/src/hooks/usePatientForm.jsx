@@ -1,8 +1,9 @@
 // hooks/usePatientForm.js
 import { useState } from 'react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api/patients';
+import patientService from '../services/patientService';
+import { getApiErrorMessage } from '../services/apiClient';
+import { toast } from '../utils/toast';
+import { fieldErrorNames } from '../utils/validation';
 
 const INITIAL_FORM_STATE = {
   name: '',
@@ -10,8 +11,14 @@ const INITIAL_FORM_STATE = {
   birthdate: '',
   gender: '',
   phone: '',
-  edad: '',
   domicilio: '',
+};
+
+const FIELD_LABELS = {
+  name: 'Nombre',
+  dni: 'DNI',
+  gender: 'Sexo',
+  phone: 'Teléfono',
 };
 
 export function usePatientForm(patients, fetchPatients) {
@@ -34,7 +41,7 @@ export function usePatientForm(patients, fetchPatients) {
       newErrors.gender = 'Selecciona un sexo válido.';
     }
 
-    // Check for duplicate DNI
+    // Al crear, el DNI no debe pertenecer a otro paciente ya registrado.
     const duplicate = patients.find(
       (p) => p.dni && p.dni === form.dni && p.id !== editId
     );
@@ -51,22 +58,25 @@ export function usePatientForm(patients, fetchPatients) {
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
+      const missing = fieldErrorNames(validationErrors, FIELD_LABELS).join(', ');
+      toast.error(`Faltan campos por completar o corregir: ${missing}`);
       return;
     }
 
     try {
       if (editId) {
-        await axios.put(`${API_URL}/${editId}`, form);
+        await patientService.update(editId, form);
       } else {
-        await axios.post(API_URL, form);
+        await patientService.create(form);
       }
 
       resetForm();
       await fetchPatients();
+      toast.success('Paciente guardado correctamente.');
     } catch (err) {
       console.error('Error del servidor:', err.response?.data || err.message);
-      alert(
-        err.response?.data?.details || 'Ocurrió un error al guardar el paciente.'
+      toast.error(
+        getApiErrorMessage(err, 'Ocurrió un error al guardar el paciente.')
       );
     }
   };
@@ -75,6 +85,7 @@ export function usePatientForm(patients, fetchPatients) {
     setForm(INITIAL_FORM_STATE);
     setEditId(null);
     setErrors({});
+    localStorage.removeItem('editingPatientId');
   };
 
   return {

@@ -1,39 +1,39 @@
 // hooks/usePatients.js
-import { useState } from 'react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api/patients';
+import { useCallback, useState } from 'react';
+import patientService from '../services/patientService';
 
 export function usePatients() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(API_URL);
-      setPatients(res.data);
+      const data = await patientService.list();
+      setPatients(data);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching patients:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const deletePatient = async (id) => {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      await fetchPatients();
-    } catch (err) {
-      setError(err.message);
-      console.error('Error deleting patient:', err);
-      throw err;
-    }
-  };
+  const deletePatient = useCallback(
+    async (id) => {
+      try {
+        await patientService.remove(id);
+        await fetchPatients();
+      } catch (err) {
+        setError(err.message);
+        console.error('Error deleting patient:', err);
+        throw err;
+      }
+    },
+    [fetchPatients]
+  );
 
   return { patients, loading, error, fetchPatients, deletePatient };
 }
-

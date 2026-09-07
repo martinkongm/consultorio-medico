@@ -1,16 +1,16 @@
-import axios from 'axios';
 import jsPDF from 'jspdf';
-import logoBase64 from '../assets/LogoBase64';
+import logoBase64 from '../assets/logoBase64';
+import recordService from '../services/recordService';
+import { buildRecordRows } from './pdfFields';
+import { formatDate } from '../utils/format';
+import { toast } from '../utils/toast';
 
 export const exportFullHistory = async (patientId, patientName) => {
   try {
-    const res = await axios.get(
-      `http://localhost:3001/api/records/patient/${patientId}`
-    );
-    const records = res.data;
+    const records = await recordService.listByPatient(patientId);
 
     if (records.length === 0) {
-      alert('Este paciente no tiene historias clínicas registradas.');
+      toast.info('Este paciente no tiene historias clínicas registradas.');
       return;
     }
 
@@ -34,31 +34,11 @@ export const exportFullHistory = async (patientId, patientName) => {
     doc.setFont('helvetica', 'normal');
 
     records.forEach((record, index) => {
-      const clean = (val, unit = '') =>
-        val === null || val === undefined || val === ''
-          ? 'No registrado'
-          : `${val}${unit}`;
-
-      const fields = [
-        ['Motivo de consulta', clean(record.motivo_consulta)],
-        ['Antecedentes', clean(record.antecedentes)],
-        ['Examen clínico', clean(record.examen_clinico)],
-        ['Diagnóstico', clean(record.diagnosis)],
-        ['Tratamiento', clean(record.treatment)],
-        ['Examen laboratorio', clean(record.examen_laboratorio)],
-        ['Temperatura (°C)', clean(record.temperatura, ' °C')],
-        [
-          'Frecuencia respiratoria (FR)',
-          clean(record.frecuencia_respiratoria, ' rpm'),
-        ],
-        ['Pulso', clean(record.pulso, ' lpm')],
-        ['Saturación de oxígeno', clean(record.spo2, ' %')],
-      ];
-
-      // 🔎 Calcular la altura estimada de esta historia
+      // Calcular la altura estimada para decidir si hacer salto de página.
+      const rows = buildRecordRows(record);
       let estimatedHeight = 18; // encabezado
-      fields.forEach(([_, value]) => {
-        const lines = doc.splitTextToSize(value || '—', pageWidth - 32);
+      rows.forEach(([, value]) => {
+        const lines = doc.splitTextToSize(value, pageWidth - 32);
         estimatedHeight += lines.length * 6 + 10;
       });
 
@@ -67,9 +47,9 @@ export const exportFullHistory = async (patientId, patientName) => {
         y = 20;
       }
 
-      // 🧾 Encabezado de historia
+      // Encabezado de historia
       doc.setFont('helvetica', 'bold');
-      doc.setFillColor(230, 230, 230); // gris claro
+      doc.setFillColor(230, 230, 230);
       doc.rect(14, y, pageWidth - 28, 8, 'F');
       doc.text(
         `Historia #${index + 1} — Fecha: ${formatDate(record.date)}`,
@@ -78,27 +58,19 @@ export const exportFullHistory = async (patientId, patientName) => {
       );
       y += 18;
 
-      // 📄 Contenido de campos
-      fields.forEach(([label, value]) => {
+      // Contenido de campos
+      rows.forEach(([label, value]) => {
         if (y > 260) {
           doc.addPage();
           y = 20;
         }
-
-        const displayValue =
-          value === null || value === undefined || value === ''
-            ? 'No registrado'
-            : value;
 
         doc.setFont('helvetica', 'bold');
         doc.text(`${label}:`, 16, y);
         y += 6;
 
         doc.setFont('helvetica', 'normal');
-        const textLines = doc.splitTextToSize(
-          displayValue || '—',
-          pageWidth - 32
-        );
+        const textLines = doc.splitTextToSize(value, pageWidth - 32);
         doc.text(textLines, 20, y);
         y += textLines.length * 6 + 4;
       });
@@ -118,12 +90,6 @@ export const exportFullHistory = async (patientId, patientName) => {
     doc.save(`Historial_${patientName}.pdf`);
   } catch (err) {
     console.error('Error al exportar historial:', err);
-    alert('No se pudo exportar el historial clínico.');
+    toast.error('No se pudo exportar el historial clínico.');
   }
-};
-
-export const formatDate = (isoDate) => {
-  if (!isoDate) return '';
-  const [year, month, day] = isoDate.split('-');
-  return `${day}/${month}/${year}`;
 };
