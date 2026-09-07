@@ -7,6 +7,10 @@ module.exports = {
   dbPath: process.env.DB_PATH || path.resolve(__dirname, 'clinic.sqlite'),
   uploadsDir:
     process.env.UPLOADS_DIR || path.resolve(__dirname, 'uploads'),
+  // Build del frontend que Express sirve en producción (si existe).
+  frontendDist:
+    process.env.FRONTEND_DIST ||
+    path.resolve(__dirname, '../frontend/dist'),
   auth: {
     username: process.env.ADMIN_USER || 'doctor',
     password: process.env.ADMIN_PASSWORD || '123',
