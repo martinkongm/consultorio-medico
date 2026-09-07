@@ -1,6 +1,7 @@
 // components/RecordForm.jsx
 import { forwardRef, useEffect, useRef } from 'react';
 import Select from 'react-select';
+import { Loader2 } from 'lucide-react';
 import { calcularEdadExacta } from '../utils/age';
 import { TIEMPO_ENFERMEDAD_UNITS } from '../utils/tiempo';
 import { EXAMEN_REGIONS } from '../utils/examenClinico';
@@ -17,7 +18,7 @@ const EXAMEN_PLACEHOLDERS = {
 
 export const RecordForm = forwardRef(
   (
-    { form, errors, editId, patients, selectedPatient, onSubmit, onCancel, onChange },
+    { form, errors, editId, patients, selectedPatient, saving, onSubmit, onCancel, onChange },
     ref
   ) => {
     const patientOptions = patients.map((p) => ({
@@ -64,7 +65,12 @@ export const RecordForm = forwardRef(
 
         <ClinicalInfoFieldset form={form} errors={errors} onChange={handleChange} />
 
-        <FormActions editId={editId} onSubmit={onSubmit} onCancel={onCancel} />
+        <FormActions
+          editId={editId}
+          saving={saving}
+          onSubmit={onSubmit}
+          onCancel={onCancel}
+        />
       </div>
     );
   }
@@ -399,19 +405,22 @@ function TiempoEnfermedadField({ form, errors, onChange }) {
   );
 }
 
-function FormActions({ editId, onSubmit, onCancel }) {
+function FormActions({ editId, saving, onSubmit, onCancel }) {
   return (
     <div className="flex gap-2 mt-4">
       <button
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
         onClick={onSubmit}
+        disabled={saving}
       >
-        {editId ? 'Guardar' : 'Agregar'}
+        {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+        {saving ? 'Guardando…' : editId ? 'Guardar' : 'Agregar'}
       </button>
       {editId && (
         <button
-          className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+          className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
           onClick={onCancel}
+          disabled={saving}
         >
           Cancelar
         </button>

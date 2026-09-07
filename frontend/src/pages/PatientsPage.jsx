@@ -30,6 +30,7 @@ export default function PatientsPage() {
     form,
     errors,
     editId,
+    saving,
     setForm,
     setEditId,
     handleSubmit,
@@ -97,8 +98,13 @@ export default function PatientsPage() {
     }
   }, [currentPage, totalPages]);
 
-  if (loading) return <div className="p-6">Cargando...</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  // Pantalla de carga solo la primera vez; las recargas posteriores (tras
+  // guardar/editar/eliminar) ocurren en segundo plano y no deben reemplazar
+  // la vista completa con "Cargando...".
+  const initialLoading = loading && patients.length === 0;
+  if (initialLoading) return <div className="p-6">Cargando...</div>;
+  if (error && patients.length === 0)
+    return <div className="p-6 text-red-600">Error: {error}</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -108,6 +114,7 @@ export default function PatientsPage() {
         form={form}
         errors={errors}
         editId={editId}
+        saving={saving}
         firstInputRef={firstInputRef}
         onSubmit={handleSubmit}
         onCancel={handleCancel}

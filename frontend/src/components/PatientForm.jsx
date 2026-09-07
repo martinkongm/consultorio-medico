@@ -1,7 +1,8 @@
 // components/PatientForm.jsx
+import { Loader2 } from 'lucide-react';
 import { FormField } from "./FormField";
 
-export function PatientForm({ form, errors, editId, firstInputRef, onSubmit, onCancel, onChange }) {
+export function PatientForm({ form, errors, editId, firstInputRef, saving, onSubmit, onCancel, onChange }) {
   const handleChange = (field, value) => {
     onChange({ ...form, [field]: value });
   };
@@ -82,15 +83,18 @@ export function PatientForm({ form, errors, editId, firstInputRef, onSubmit, onC
 
         <div className="flex gap-2 items-start md:col-span-5">
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
             onClick={onSubmit}
+            disabled={saving}
           >
-            {editId ? 'Guardar' : 'Agregar'}
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saving ? 'Guardando…' : editId ? 'Guardar' : 'Agregar'}
           </button>
           {editId && (
             <button
-              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={onCancel}
+              disabled={saving}
             >
               Cancelar
             </button>

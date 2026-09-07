@@ -29,7 +29,7 @@ export function RecordTable({ records, onViewFiles, onViewDetail, onEdit, onDele
             <td className="p-2 border space-x-1">
               <button
                 className="bg-sky-600 text-white px-2 py-1 rounded hover:bg-sky-700"
-                onClick={() => onViewFiles(r.id)}
+                onClick={() => onViewFiles(r)}
               >
                 Archivos
               </button>

@@ -25,6 +25,7 @@ export function usePatientForm(patients, fetchPatients) {
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [errors, setErrors] = useState({});
   const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -64,6 +65,7 @@ export function usePatientForm(patients, fetchPatients) {
     }
 
     try {
+      setSaving(true);
       if (editId) {
         await patientService.update(editId, form);
       } else {
@@ -78,6 +80,8 @@ export function usePatientForm(patients, fetchPatients) {
       toast.error(
         getApiErrorMessage(err, 'Ocurrió un error al guardar el paciente.')
       );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -92,6 +96,7 @@ export function usePatientForm(patients, fetchPatients) {
     form,
     errors,
     editId,
+    saving,
     setForm,
     setEditId,
     handleSubmit,

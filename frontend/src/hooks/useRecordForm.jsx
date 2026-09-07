@@ -43,6 +43,7 @@ export function useRecordForm(records, patients, fetchRecords, formRef) {
   const [form, setForm] = useState(INITIAL_FORM_STATE);
   const [errors, setErrors] = useState({});
   const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -110,6 +111,7 @@ export function useRecordForm(records, patients, fetchRecords, formRef) {
 
     try {
       const payload = buildPayload();
+      setSaving(true);
       if (editId) {
         await recordService.update(editId, payload);
       } else {
@@ -127,6 +129,8 @@ export function useRecordForm(records, patients, fetchRecords, formRef) {
           'No se pudo guardar la historia clínica. Revisa los campos o intenta más tarde.'
         )
       );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -167,5 +171,14 @@ export function useRecordForm(records, patients, fetchRecords, formRef) {
     localStorage.removeItem('lastSelectedRecordId');
   };
 
-  return { form, errors, editId, setForm, handleSubmit, handleEdit, resetForm };
+  return {
+    form,
+    errors,
+    editId,
+    saving,
+    setForm,
+    handleSubmit,
+    handleEdit,
+    resetForm,
+  };
 }

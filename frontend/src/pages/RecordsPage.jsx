@@ -20,6 +20,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function RecordsPage() {
   const formRef = useRef(null);
+  const filesSectionRef = useRef(null);
   const location = useLocation();
 
   const [searchDNI, setSearchDNI] = useState('');
@@ -33,6 +34,7 @@ export default function RecordsPage() {
     form,
     errors,
     editId,
+    saving,
     setForm,
     handleSubmit,
     handleEdit,
@@ -147,6 +149,15 @@ export default function RecordsPage() {
     setSelectedRecordId(record.id);
     fetchFiles(record.id);
     localStorage.setItem('lastSelectedRecordId', record.id);
+
+    // Desplaza la página para dejar visible la sección de archivos (espera a
+    // que React renderice la sección tras actualizar selectedRecordId).
+    setTimeout(() => {
+      filesSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 50);
   };
 
   const handleCloseFiles = () => {
@@ -166,6 +177,7 @@ export default function RecordsPage() {
         form={form}
         errors={errors}
         editId={editId}
+        saving={saving}
         patients={patients}
         selectedPatient={selectedPatient}
         onSubmit={handleSubmit}
@@ -219,15 +231,20 @@ export default function RecordsPage() {
       )}
 
       {selectedRecordId && (
-        <FileUploadSection
-          recordId={selectedRecordId}
-          patientName={recordWithFiles?.patient_name || selectedPatient?.name}
-          selectedFile={selectedFile}
-          uploadedFiles={uploadedFiles}
-          onFileSelect={setSelectedFile}
-          onUpload={uploadFile}
-          onClose={handleCloseFiles}
-        />
+        <div
+          ref={filesSectionRef}
+          className="scroll-mt-16"
+        >
+          <FileUploadSection
+            recordId={selectedRecordId}
+            patientName={recordWithFiles?.patient_name || selectedPatient?.name}
+            selectedFile={selectedFile}
+            uploadedFiles={uploadedFiles}
+            onFileSelect={setSelectedFile}
+            onUpload={uploadFile}
+            onClose={handleCloseFiles}
+          />
+        </div>
       )}
     </div>
   );
