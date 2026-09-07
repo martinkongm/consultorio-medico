@@ -1,3 +1,5 @@
+import { formatDate } from '../utils/format';
+
 export default function PatientDetailModal({ patient, isOpen, onClose }) {
   if (!isOpen || !patient) return null;
 
@@ -9,7 +11,7 @@ export default function PatientDetailModal({ patient, isOpen, onClose }) {
         <p><strong>Nombre:</strong> {patient.name || '--'}</p>
         <p><strong>DNI:</strong> {patient.dni || '--'}</p>
         <p><strong>Edad:</strong> {patient.edad || '--'}</p>
-        <p><strong>Fecha de nacimiento:</strong> {patient.birthdate || '--'}</p>
+        <p><strong>Fecha de nacimiento:</strong> {formatDate(patient.birthdate) || '--'}</p>
         <p><strong>Sexo:</strong> {patient.gender || '--'}</p>
         <p><strong>Teléfono:</strong> {patient.phone || '--'}</p>
         <p><strong>Domicilio:</strong> {patient.domicilio || '--'}</p>

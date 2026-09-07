@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { exportSingleRecordToPDF } from '../helper/exportSingleRecordToPDF';
 import { useRecords } from '../hooks/useRecords';
@@ -10,17 +10,22 @@ import { RecordTable } from '../components/RecordTable';
 import { RecordDetailModal } from '../components/RecordDetailModal';
 import { FileUploadSection } from '../components/FileUploadSection';
 import { SearchBar } from '../components/SearchBar';
+import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { normalizeForSearch } from '../utils/format';
+import { getApiErrorMessage } from '../services/apiClient';
+import { toast } from '../utils/toast';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function RecordsPage() {
   const formRef = useRef(null);
   const location = useLocation();
-  
+
   const [searchDNI, setSearchDNI] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState(null);
-  const [selectedRecordId, setSelectedRecordId] = useState(null);
 
   const { records, fetchRecords, deleteRecord } = useRecords();
   const { patients, fetchPatients } = usePatients();
@@ -37,25 +42,16 @@ export default function RecordsPage() {
   const {
     selectedFile,
     uploadedFiles,
+    selectedRecordId,
     setSelectedFile,
-    setSelectedRecordId: setFileRecordId,
-    uploadFile,
+    setUploadedFiles,
+    setSelectedRecordId,
     fetchFiles,
+    uploadFile,
   } = useFileUpload();
 
-  const ITEMS_PER_PAGE = 10;
-
-  useEffect(() => {
-    fetchPatients();
-    fetchRecords();
-    loadSavedState();
-  }, []);
-
-  useEffect(() => {
-    handleURLParams();
-  }, [location.search, patients]);
-
-  const loadSavedState = () => {
+  // Restaura selecciones previas persistidas en localStorage.
+  const loadSavedState = useCallback(() => {
     const savedPatientId = localStorage.getItem('lastSelectedPatientId');
     if (savedPatientId) {
       setForm((prev) => ({ ...prev, patient_id: parseInt(savedPatientId) }));
@@ -65,12 +61,12 @@ export default function RecordsPage() {
     if (savedRecordId) {
       const id = parseInt(savedRecordId);
       setSelectedRecordId(id);
-      setFileRecordId(id);
       fetchFiles(id);
     }
-  };
+  }, [setForm, setSelectedRecordId, fetchFiles]);
 
-  const handleURLParams = () => {
+  // Si se llega desde "Pacientes" con ?dni=...&nombre=..., preselecciona.
+  const handleURLParams = useCallback(() => {
     const params = new URLSearchParams(location.search);
     const dniFromUrl = params.get('dni');
     const nameFromUrl = params.get('nombre');
@@ -90,45 +86,76 @@ export default function RecordsPage() {
         setSearchDNI(patient.dni);
       }
     }
-  };
+  }, [location.search, patients, setForm]);
 
-  const handleDeleteRecord = async (id) => {
-    if (window.confirm('¿Eliminar esta historia clínica?')) {
-      await deleteRecord(id);
-    }
-  };
+  useEffect(() => {
+    fetchPatients();
+    fetchRecords();
+    loadSavedState();
+  }, [fetchPatients, fetchRecords, loadSavedState]);
 
-  const handleViewFiles = (recordId) => {
-    setSelectedRecordId(recordId);
-    setFileRecordId(recordId);
-    fetchFiles(recordId);
-    localStorage.setItem('lastSelectedRecordId', recordId);
-  };
+  useEffect(() => {
+    handleURLParams();
+  }, [handleURLParams]);
 
-  const handleCloseFiles = () => {
-    setSelectedRecordId(null);
-    setFileRecordId(null);
-    localStorage.removeItem('lastSelectedRecordId');
-  };
+  const selectedPatient = patients.find((p) => p.id === form.patient_id);
 
   const filteredRecords = records
     .filter((r) => {
       if (!searchDNI) return true;
       const patient = patients.find((p) => p.id === r.patient_id);
       return (
-        patient?.dni.includes(searchDNI) ||
-        patient?.name.toLowerCase().includes(searchDNI.toLowerCase())
+        (patient?.dni &&
+          normalizeForSearch(patient.dni).includes(normalizeForSearch(searchDNI))) ||
+        (patient?.name &&
+          normalizeForSearch(patient.name).includes(normalizeForSearch(searchDNI)))
       );
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const { paginatedItems } = usePagination(
+  const { paginatedItems, totalPages, indexOfFirst } = usePagination(
     filteredRecords,
     currentPage,
     ITEMS_PER_PAGE
   );
 
-  const selectedPatient = patients.find((p) => p.id === form.patient_id);
+  const firstShown = filteredRecords.length ? indexOfFirst + 1 : 0;
+  const lastShown = Math.min(
+    indexOfFirst + ITEMS_PER_PAGE,
+    filteredRecords.length
+  );
+
+  // Si la página actual supera el total (p. ej. tras filtrar), se reajusta.
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handleDeleteRecord = async (id) => {
+    if (window.confirm('¿Eliminar esta historia clínica?')) {
+      try {
+        await deleteRecord(id);
+        toast.success('Historia clínica eliminada correctamente.');
+      } catch (err) {
+        toast.error(getApiErrorMessage(err, 'Error al eliminar la historia clínica.'));
+      }
+    }
+  };
+
+  const handleViewFiles = (record) => {
+    setSelectedRecordId(record.id);
+    fetchFiles(record.id);
+    localStorage.setItem('lastSelectedRecordId', record.id);
+  };
+
+  const handleCloseFiles = () => {
+    setSelectedRecordId(null);
+    setUploadedFiles([]);
+    localStorage.removeItem('lastSelectedRecordId');
+  };
+
+  const recordWithFiles = records.find((r) => r.id === selectedRecordId);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -158,7 +185,6 @@ export default function RecordsPage() {
 
       <RecordTable
         records={paginatedItems}
-        patients={patients}
         onViewFiles={handleViewFiles}
         onViewDetail={(record) => {
           setSelectedRecordDetail(record);
@@ -168,12 +194,18 @@ export default function RecordsPage() {
         onDelete={handleDeleteRecord}
       />
 
-      <RecordPagination
-        currentPage={currentPage}
-        totalItems={filteredRecords.length}
-        itemsPerPage={ITEMS_PER_PAGE}
-        onPageChange={setCurrentPage}
-      />
+      <div className="flex justify-between items-center mb-8 text-sm">
+        <p>
+          {filteredRecords.length > 0
+            ? `Mostrando ${firstShown}–${lastShown} de ${filteredRecords.length} historia(s)`
+            : '0 historias'}
+        </p>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
 
       {showDetailModal && selectedRecordDetail && (
         <RecordDetailModal
@@ -189,7 +221,7 @@ export default function RecordsPage() {
       {selectedRecordId && (
         <FileUploadSection
           recordId={selectedRecordId}
-          patientName={selectedPatient?.name}
+          patientName={recordWithFiles?.patient_name || selectedPatient?.name}
           selectedFile={selectedFile}
           uploadedFiles={uploadedFiles}
           onFileSelect={setSelectedFile}
@@ -200,41 +232,3 @@ export default function RecordsPage() {
     </div>
   );
 }
-
-// Pagination component specific to records
-function RecordPagination({ currentPage, totalItems, itemsPerPage, onPageChange }) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startItem = Math.min((currentPage - 1) * itemsPerPage + 1, totalItems);
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  return (
-    <div className="flex justify-between items-center mb-10 text-sm">
-      <p>
-        Mostrando {startItem}–{endItem} de {totalItems} historia(s)
-      </p>
-      <div className="space-x-2">
-        <button
-          disabled={currentPage === 1}
-          onClick={() => onPageChange((prev) => Math.max(prev - 1, 1))}
-          className={`px-3 py-1 rounded border ${
-            currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'hover:bg-gray-100'
-          }`}
-        >
-          Anterior
-        </button>
-        <button
-          disabled={currentPage * itemsPerPage >= totalItems}
-          onClick={() => onPageChange((prev) => prev + 1)}
-          className={`px-3 py-1 rounded border ${
-            currentPage * itemsPerPage >= totalItems
-              ? 'bg-gray-200 text-gray-400'
-              : 'hover:bg-gray-100'
-          }`}
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
-  );
-}
-

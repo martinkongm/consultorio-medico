@@ -1,39 +1,39 @@
-
 // hooks/useRecords.js
-import { useState } from 'react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api/records';
+import { useCallback, useState } from 'react';
+import recordService from '../services/recordService';
 
 export function useRecords() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(API_URL);
-      setRecords(res.data);
+      const data = await recordService.list();
+      setRecords(data);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching records:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const deleteRecord = async (id) => {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      await fetchRecords();
-    } catch (err) {
-      setError(err.message);
-      console.error('Error deleting record:', err);
-      throw err;
-    }
-  };
+  const deleteRecord = useCallback(
+    async (id) => {
+      try {
+        await recordService.remove(id);
+        await fetchRecords();
+      } catch (err) {
+        setError(err.message);
+        console.error('Error deleting record:', err);
+        throw err;
+      }
+    },
+    [fetchRecords]
+  );
 
   return { records, loading, error, fetchRecords, deleteRecord };
 }

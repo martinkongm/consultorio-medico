@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import authService from '../services/authService';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -12,10 +12,10 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await axios.post('http://localhost:3001/api/login', form);
+      await authService.login(form);
       localStorage.setItem('authenticated', 'true');
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Credenciales incorrectas');
     }
   };

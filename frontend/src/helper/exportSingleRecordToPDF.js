@@ -1,9 +1,12 @@
 import jsPDF from 'jspdf';
-import logoBase64 from '../assets/LogoBase64';
+import logoBase64 from '../assets/logoBase64';
+import { buildRecordRows } from './pdfFields';
+import { formatDate } from '../utils/format';
 
 export const exportSingleRecordToPDF = (record) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   // Logo centrado
   doc.addImage(logoBase64, 'PNG', (pageWidth - 60) / 2, 10, 60, 30);
@@ -27,9 +30,13 @@ export const exportSingleRecordToPDF = (record) => {
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Paciente: ${record.patient_name}`, 14, y);
+  doc.text(`Paciente: ${record.patient_name || 'No registrado'}`, 14, y);
   y += 7;
-  doc.text(`Fecha de consulta: ${record.date}`, 14, y);
+  doc.text(
+    `Fecha de consulta: ${formatDate(record.date) || 'No registrada'}`,
+    14,
+    y
+  );
   y += 10;
 
   // Sección: Información clínica
@@ -41,45 +48,18 @@ export const exportSingleRecordToPDF = (record) => {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
 
-  const clean = (val, unit = '') =>
-    val === null || val === undefined || val === ''
-      ? 'No registrado'
-      : `${val}${unit}`;
-
-  const content = [
-    ['Motivo de consulta', clean(record.motivo_consulta)],
-    ['Antecedentes', clean(record.antecedentes)],
-    ['Examen clínico', clean(record.examen_clinico)],
-    ['Diagnóstico', clean(record.diagnosis)],
-    ['Tratamiento', clean(record.treatment)],
-    ['Examen laboratorio', clean(record.examen_laboratorio)],
-    ['Temperatura (°C)', clean(record.temperatura, ' °C')],
-    [
-      'Frecuencia respiratoria (FR)',
-      clean(record.frecuencia_respiratoria, ' rpm'),
-    ],
-    ['Pulso', clean(record.pulso, ' lpm')],
-    ['Saturación de oxígeno', clean(record.spo2, ' %')],
-  ];
-
-  content.forEach(([label, value]) => {
+  buildRecordRows(record).forEach(([label, value]) => {
     if (y > 270) {
       doc.addPage();
       y = 20;
     }
-
-    const displayValue =
-      value === null || value === undefined || value === ''
-        ? 'No registrado'
-        : value;
 
     doc.setFont('helvetica', 'bold');
     doc.text(`${label}:`, 14, y);
     y += 6;
 
     doc.setFont('helvetica', 'normal');
-
-    const splitText = doc.splitTextToSize(displayValue || '—', pageWidth - 28);
+    const splitText = doc.splitTextToSize(value, pageWidth - 28);
     doc.text(splitText, 18, y);
     y += splitText.length * 6 + 4;
   });
@@ -90,7 +70,7 @@ export const exportSingleRecordToPDF = (record) => {
   doc.text(
     `Generado el ${new Date().toLocaleDateString()} – Consultorio Médico Martín Kong`,
     14,
-    290
+    pageHeight - 10
   );
 
   doc.save(`Historia_${record.patient_name || 'paciente'}.pdf`);
